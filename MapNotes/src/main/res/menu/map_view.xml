@@ -3,10 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="net.gylka.mapnotes.MapViewActivity" >
 
-    <item android:id="@+id/action_next"
-        android:title="@string/action_next"
+    <item android:id="@+id/action_create_mapnote"
+        android:title="@string/action_create_mapnote"
         android:orderInCategory="1"
         app:showAsAction="always"
         android:visible="false"
         android:enabled="false"/>
+    <item android:id="@+id/action_edit"
+        android:title="@string/action_edit"
+        android:orderInCategory="2"
+        app:showAsAction="always"
+        android:visible="false"
+        android:enabled="false"/>
+
 </menu>

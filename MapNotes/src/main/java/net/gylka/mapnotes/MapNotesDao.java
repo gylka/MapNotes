@@ -1,18 +1,19 @@
 package net.gylka.mapnotes;
 
-import com.google.android.gms.maps.model.LatLng;
-
 import java.util.ArrayList;
-import java.util.DuplicateFormatFlagsException;
 
 public interface MapNotesDao {
 
-    boolean addNote (MapNote mapNote);
+    long addNote (MapNote mapNote);
+
+    MapNote getMapNote(long id);
 
     ArrayList<MapNote> getAllNotes();
 
+    boolean updateMapNote(long mapNoteId, MapNote mapNote);
+
     boolean isMapNoteAlreadyInTable (MapNote mapNote);
 
-    boolean isMapNoteAlreadyInTable (LatLng latLng);
+    boolean isMapNoteAlreadyInTable (long id);
 
 }

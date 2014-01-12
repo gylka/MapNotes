@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
@@ -19,6 +20,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class MapViewActivity extends BaseActivity {
@@ -26,19 +29,13 @@ public class MapViewActivity extends BaseActivity {
     private MapNote mCurrentMapNote;
     private Marker mCurrentMarker;
     private Menu mMenu;
+    private Map<Marker, Long> mMapMarkers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map_view);
 
-/*        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, new PlaceholderFragment())
-                    .commit();
-        }*/
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.map);
         SupportMapFragment supportMapFragment = (SupportMapFragment) fragment;
         final GoogleMap googleMap = supportMapFragment.getMap();
@@ -55,22 +52,40 @@ public class MapViewActivity extends BaseActivity {
         });
 */
         ArrayList<MapNote> mapNotes = mMapNotesDao.getAllNotes();
+        mMapMarkers = new HashMap<Marker, Long>();
         for (MapNote mapNote : mapNotes) {
-            googleMap.addMarker(new MarkerOptions().position(mapNote.getLatLng()));
+            Marker marker = googleMap.addMarker(new MarkerOptions().position(mapNote.getLatLng()));
+            mMapMarkers.put(marker, mapNote.getId());
         }
 
         googleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
 
             @Override
             public void onMapLongClick(LatLng latLng) {
-                if (! mMapNotesDao.isMapNoteAlreadyInTable(latLng)) {
-                    mCurrentMapNote = new MapNote();
-                    mCurrentMapNote.setLatLng(latLng);
-                    mCurrentMarker = googleMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
-                    MenuItem actionNext = mMenu.findItem(R.id.action_next);
-                    actionNext.setVisible(true);
-                    actionNext.setEnabled(true);
-                }
+                updateMapMarkers();
+
+                mCurrentMapNote = new MapNote();
+                mCurrentMapNote.setLatLng(latLng);
+                mCurrentMarker = googleMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
+                MenuItem actionCreate = mMenu.findItem(R.id.action_create_mapnote);
+                actionCreate.setVisible(true);
+                actionCreate.setEnabled(true);
+            }
+        });
+
+        googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                updateMapMarkers();
+                MapNote mapNote = mMapNotesDao.getMapNote(mMapMarkers.get(marker));
+                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
+                mCurrentMarker = marker;
+                mCurrentMapNote = mapNote;
+
+                MenuItem actionEdit = mMenu.findItem(R.id.action_edit);
+                actionEdit.setVisible(true);
+                actionEdit.setEnabled(true);
+                return true;
             }
         });
 
@@ -86,11 +101,8 @@ public class MapViewActivity extends BaseActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()) {
-            case R.id.action_next : {
+            case R.id.action_create_mapnote : {
                 Intent intent = new Intent(this, MarkerEditActivity.class);
                 intent.putExtra(this.PACKAGE_NAME + MapNote.LATITUDE_KEY, mCurrentMapNote.getLatLng().latitude);
                 intent.putExtra(this.PACKAGE_NAME + MapNote.LONGTITUDE_KEY, mCurrentMapNote.getLatLng().longitude);
@@ -98,6 +110,15 @@ public class MapViewActivity extends BaseActivity {
                 startActivityForResult(intent, MarkerEditActivity.REQUEST_ADD_MARKER);
                 return true;
             }
+            case R.id.action_edit : {
+                Intent intent = new Intent(this, MarkerEditActivity.class);
+                intent.putExtra(this.PACKAGE_NAME + MapNote.ID_KEY, mCurrentMapNote.getId());
+                intent.putExtra(this.PACKAGE_NAME + MarkerEditActivity.REQUEST_KEY, MarkerEditActivity.REQUEST_EDIT_MARKER);
+                startActivityForResult(intent, MarkerEditActivity.REQUEST_EDIT_MARKER);
+                return true;
+            }
+
+
         }
         return super.onOptionsItemSelected(item);
     }
@@ -105,38 +126,39 @@ public class MapViewActivity extends BaseActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == MarkerEditActivity.RESULT_ERROR) {
+            Toast.makeText(getApplicationContext(), "Some error happened during creating/editing operation", Toast.LENGTH_SHORT).show();
+        }
         switch (requestCode) {
             case MarkerEditActivity.REQUEST_ADD_MARKER : {
                 if (resultCode == MarkerEditActivity.RESULT_CANCELED) {
-                    mCurrentMarker.remove();
                 }
                 if (resultCode == MarkerEditActivity.RESULT_MARKER_ADDED) {
-                    mCurrentMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                    mMapMarkers.put(mCurrentMarker, data.getLongExtra(MapNote.ID_KEY, -1));
                 }
+                break;
             }
-            //TODO add case for editing marker
+            case MarkerEditActivity.REQUEST_EDIT_MARKER : {
+                break;
+            }
         }
-        MenuItem actionNext = mMenu.findItem(R.id.action_next);
-        actionNext.setVisible(false);
-        actionNext.setEnabled(false);
-
-
+        updateMapMarkers();
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-
-        public PlaceholderFragment() {
+    private void updateMapMarkers() {
+        if ((mCurrentMarker != null) && mMapMarkers.containsKey(mCurrentMarker)) {
+            mCurrentMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
         }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_map_view, container, false);
-            return rootView;
+        if ((mCurrentMarker != null) && ! mMapMarkers.containsKey(mCurrentMarker)) {
+            mCurrentMarker.remove();
         }
+        MenuItem actionCreate = mMenu.findItem(R.id.action_create_mapnote);
+        actionCreate.setVisible(false);
+        actionCreate.setEnabled(false);
+        MenuItem actionEdit = mMenu.findItem(R.id.action_edit);
+        actionEdit.setVisible(false);
+        actionEdit.setEnabled(false);
+
     }
 
 }
