@@ -15,5 +15,9 @@
         app:showAsAction="always"
         android:visible="false"
         android:enabled="false"/>
+    <item android:id="@+id/action_copy_db"
+        android:title="@string/action_copy_db"
+        android:orderInCategory="100"
+        android:showAsAction="never"/>
 
 </menu>

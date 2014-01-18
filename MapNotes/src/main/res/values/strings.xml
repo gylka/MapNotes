@@ -14,5 +14,9 @@
     <string name="label_create_map_note">Create MapNote</string>
     <string name="label_edit_map_note">Edit MapNote</string>
     <string name="label_cancel">Cancel</string>
+    <string name="action_copy_db">Copy DB to SD</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="tab_map_view">Map View</string>
+    <string name="tab_notes_list">Notes List</string>
 
 </resources>
