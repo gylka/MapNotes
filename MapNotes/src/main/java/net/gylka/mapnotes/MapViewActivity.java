@@ -30,16 +30,13 @@ import java.util.Locale;
 import java.util.Map;
 
 
-public class MapViewActivity extends BaseActivity implements ActionBar.TabListener, NotesListFragment.OnFragmentInteractionListener {
+public class MapViewActivity extends BaseActivity implements ActionBar.TabListener {
 
     private MapNote mCurrentMapNote;
     private Marker mCurrentMarker;
     private Menu mMenu;
     private Map<Marker, Long> mMapMarkers;
 
-    private MapViewPagerAdapter mViewPagerAdapter;
-    private ViewPager mViewPager;
-    private SupportMapFragment mMapFragment;
     private ActionBar mActionBar;
 
     @Override
@@ -49,22 +46,22 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
 
         mActionBar = getSupportActionBar();
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-        mViewPagerAdapter = new MapViewPagerAdapter(getSupportFragmentManager());
-        mViewPager = (ViewPager) findViewById(R.id.main_pager);
-        mViewPager.setAdapter(mViewPagerAdapter);
-        mViewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+        MapNotesPagerAdapter mapNotesPagerAdapter = new MapNotesPagerAdapter(getSupportFragmentManager());
+        ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
+        viewPager.setAdapter(mapNotesPagerAdapter);
+        viewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
                 mActionBar.setSelectedNavigationItem(position);
             }
         });
 
-        for (int i=0; i < mViewPagerAdapter.getCount() ; i++) {
-            mActionBar.addTab(mActionBar.newTab().setText(mViewPagerAdapter.getPageTitle(i)).setTabListener(this));
+        for (int i=0; i < mapNotesPagerAdapter.getCount() ; i++) {
+            mActionBar.addTab(mActionBar.newTab().setText(mapNotesPagerAdapter.getPageTitle(i)).setTabListener(this));
         }
 
-/*
-        mMapFragment = (SupportMapFragment) mViewPagerAdapter.getItem(MapViewPagerAdapter.MAP_VIEW_FRAGMENT_INDEX);
+
+/*        mMapFragment = (SupportMapFragment) mViewPagerAdapter.getItem(MapViewPagerAdapter.MAP_VIEW_FRAGMENT_INDEX);
         final GoogleMap googleMap = mMapFragment.getMap();
         ArrayList<MapNote> mapNotes = mMapNotesDao.getAllNotes();
         mMapMarkers = new HashMap<Marker, Long>();
@@ -72,9 +69,9 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
             Marker marker = googleMap.addMarker(new MarkerOptions().position(mapNote.getLatLng()));
             mMapMarkers.put(marker, mapNote.getId());
         }
-*/
 
-/*
+
+
         googleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
 
             @Override
@@ -88,6 +85,7 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
                 actionCreate.setEnabled(true);
             }
         });
+
 
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -183,7 +181,8 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
 
     @Override
     public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-        mViewPager.setCurrentItem(tab.getPosition());
+        ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
+        viewPager.setCurrentItem(tab.getPosition());
     }
 
     @Override
@@ -196,37 +195,30 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
 
     }
 
-    @Override
-    public void onFragmentInteraction(Uri uri) {
 
-    }
-
-    public class MapViewPagerAdapter extends FragmentPagerAdapter {
+    public class MapNotesPagerAdapter extends FragmentPagerAdapter {
 
         public static final int MAP_VIEW_FRAGMENT_INDEX = 0;
         public static final int NOTES_LIST_FRAGMENT_INDEX = 1;
 
         public static final int NUMBER_OF_PAGES = 2;
 
-        private SupportMapFragment mMapFragment;
+        private MapViewFragment mMapFragment;
         private NotesListFragment mNotesListFragment;
 
-        public MapViewPagerAdapter(FragmentManager fm) {
+        public MapNotesPagerAdapter(FragmentManager fm) {
             super(fm);
-            this.mMapFragment = SupportMapFragment.newInstance();
-            GoogleMap googleMap = mMapFragment.getMap();
-            googleMap.addMarker((new MarkerOptions()).position(new LatLng(0,0)));
-            mNotesListFragment = NotesListFragment.newInstance("aa","bb");
         }
 
         @Override
         public Fragment getItem(int i) {
             switch (i) {
                 case MAP_VIEW_FRAGMENT_INDEX : {
+                    mMapFragment = MapViewFragment.newInstance(null, null);
                     return mMapFragment;
                 }
                 case NOTES_LIST_FRAGMENT_INDEX : {
-                    return mNotesListFragment;
+                    return NotesListFragment.newInstance("","");
                 }
             }
             return null;
