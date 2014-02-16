@@ -76,6 +76,8 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         switch (item.getItemId()) {
             case R.id.action_copy_db : {
                 NotesDbOpenHelper.copyDatabaseToExtSDCardDownloads(getApplicationContext());
+                //TODO : remove this comment
+                //mMapNotesDao.deleteAllMapNotes();
                 Toast.makeText(getApplicationContext(), "DB copied to Downloads directory", Toast.LENGTH_SHORT).show();
             }
         }
@@ -167,7 +169,9 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
                     return mMapFragment;
                 }
                 case NOTES_LIST_FRAGMENT_INDEX : {
-                    mNotesListFragment = NotesListFragment.newInstance("","");
+                    if (mNotesListFragment == null) {
+                        mNotesListFragment = NotesListFragment.newInstance();
+                    }
                     return mNotesListFragment;
                 }
             }

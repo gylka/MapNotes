@@ -13,4 +13,5 @@ public class BaseActivity extends ActionBarActivity {
         mMapNotesDao = new MapNotesDaoImpl(getApplicationContext());
     }
 
+
 }
