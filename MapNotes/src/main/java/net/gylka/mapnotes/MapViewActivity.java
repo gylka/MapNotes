@@ -1,6 +1,5 @@
 package net.gylka.mapnotes;
 
-import android.net.Uri;
 import android.support.v4.app.FragmentTransaction;
 import android.content.Intent;
 import android.support.v4.app.FragmentManager;
@@ -9,35 +8,21 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Toast;
 
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapView;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 
-public class MapViewActivity extends BaseActivity implements ActionBar.TabListener {
+public class MapViewActivity extends BaseActivity implements ActionBar.TabListener, MapViewFragment.OnMarkerEditListener {
 
-    private MapNote mCurrentMapNote;
-    private Marker mCurrentMarker;
     private Menu mMenu;
-    private Map<Marker, Long> mMapMarkers;
 
     private ActionBar mActionBar;
+    private MapNotesPagerAdapter mMapNotesPagerAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,64 +31,35 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
 
         mActionBar = getSupportActionBar();
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-        MapNotesPagerAdapter mapNotesPagerAdapter = new MapNotesPagerAdapter(getSupportFragmentManager());
-        ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
-        viewPager.setAdapter(mapNotesPagerAdapter);
+        mMapNotesPagerAdapter = new MapNotesPagerAdapter(getSupportFragmentManager());
+        final ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
+        viewPager.setAdapter(mMapNotesPagerAdapter);
         viewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
                 mActionBar.setSelectedNavigationItem(position);
             }
         });
+        viewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int i, float v, int i2) {
 
-        for (int i=0; i < mapNotesPagerAdapter.getCount() ; i++) {
-            mActionBar.addTab(mActionBar.newTab().setText(mapNotesPagerAdapter.getPageTitle(i)).setTabListener(this));
-        }
-
-
-/*        mMapFragment = (SupportMapFragment) mViewPagerAdapter.getItem(MapViewPagerAdapter.MAP_VIEW_FRAGMENT_INDEX);
-        final GoogleMap googleMap = mMapFragment.getMap();
-        ArrayList<MapNote> mapNotes = mMapNotesDao.getAllNotes();
-        mMapMarkers = new HashMap<Marker, Long>();
-        for (MapNote mapNote : mapNotes) {
-            Marker marker = googleMap.addMarker(new MarkerOptions().position(mapNote.getLatLng()));
-            mMapMarkers.put(marker, mapNote.getId());
-        }
-
-
-
-        googleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            }
 
             @Override
-            public void onMapLongClick(LatLng latLng) {
-                updateMapMarkers();
-                mCurrentMapNote = new MapNote();
-                mCurrentMapNote.setLatLng(latLng);
-                mCurrentMarker = googleMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
-                MenuItem actionCreate = mMenu.findItem(R.id.action_create_mapnote);
-                actionCreate.setVisible(true);
-                actionCreate.setEnabled(true);
+            public void onPageSelected(int i) {
+                ((MapNotesPagerAdapter) viewPager.getAdapter()).refreshFragment(i);
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int i) {
+
             }
         });
 
-
-        googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-                updateMapMarkers();
-                MapNote mapNote = mMapNotesDao.getMapNote(mMapMarkers.get(marker));
-                marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
-                mCurrentMarker = marker;
-                mCurrentMapNote = mapNote;
-
-                MenuItem actionEdit = mMenu.findItem(R.id.action_edit);
-                actionEdit.setVisible(true);
-                actionEdit.setEnabled(true);
-                return true;
-            }
-        });
-*/
-
+        for (int i=0; i < mMapNotesPagerAdapter.getCount() ; i++) {
+            mActionBar.addTab(mActionBar.newTab().setText(mMapNotesPagerAdapter.getPageTitle(i)).setTabListener(this));
+        }
 
     }
 
@@ -118,21 +74,6 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.action_create_mapnote : {
-                Intent intent = new Intent(this, MarkerEditActivity.class);
-                intent.putExtra(this.PACKAGE_NAME + MapNote.LATITUDE_KEY, mCurrentMapNote.getLatLng().latitude);
-                intent.putExtra(this.PACKAGE_NAME + MapNote.LONGTITUDE_KEY, mCurrentMapNote.getLatLng().longitude);
-                intent.putExtra(this.PACKAGE_NAME + MarkerEditActivity.REQUEST_KEY, MarkerEditActivity.REQUEST_ADD_MARKER);
-                startActivityForResult(intent, MarkerEditActivity.REQUEST_ADD_MARKER);
-                break;
-            }
-            case R.id.action_edit : {
-                Intent intent = new Intent(this, MarkerEditActivity.class);
-                intent.putExtra(this.PACKAGE_NAME + MapNote.ID_KEY, mCurrentMapNote.getId());
-                intent.putExtra(this.PACKAGE_NAME + MarkerEditActivity.REQUEST_KEY, MarkerEditActivity.REQUEST_EDIT_MARKER);
-                startActivityForResult(intent, MarkerEditActivity.REQUEST_EDIT_MARKER);
-                break;
-            }
             case R.id.action_copy_db : {
                 NotesDbOpenHelper.copyDatabaseToExtSDCardDownloads(getApplicationContext());
                 Toast.makeText(getApplicationContext(), "DB copied to Downloads directory", Toast.LENGTH_SHORT).show();
@@ -150,51 +91,57 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         switch (requestCode) {
             case MarkerEditActivity.REQUEST_ADD_MARKER : {
                 if (resultCode == MarkerEditActivity.RESULT_CANCELED) {
+                    if (mMapNotesPagerAdapter.mMapFragment != null) {
+                        mMapNotesPagerAdapter.mMapFragment.onMarkerAddOrEditCanceled();
+                    }
                 }
                 if (resultCode == MarkerEditActivity.RESULT_MARKER_ADDED) {
-                    mMapMarkers.put(mCurrentMarker, data.getLongExtra(MapNote.ID_KEY, -1));
+                    if (mMapNotesPagerAdapter.mMapFragment != null) {
+                        mMapNotesPagerAdapter.mMapFragment.onMarkerAdded(data.getLongExtra(MapNote.ID_KEY, -1));
+                    }
                 }
                 break;
             }
             case MarkerEditActivity.REQUEST_EDIT_MARKER : {
+                if (mMapNotesPagerAdapter.mMapFragment != null) {
+                    mMapNotesPagerAdapter.mMapFragment.onMarkerEdited();
+                }
                 break;
             }
         }
-        updateMapMarkers();
-    }
-
-    private void updateMapMarkers() {
-        if ((mCurrentMarker != null) && mMapMarkers.containsKey(mCurrentMarker)) {
-            mCurrentMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-        }
-        if ((mCurrentMarker != null) && ! mMapMarkers.containsKey(mCurrentMarker)) {
-            mCurrentMarker.remove();
-        }
-        MenuItem actionCreate = mMenu.findItem(R.id.action_create_mapnote);
-        actionCreate.setVisible(false);
-        actionCreate.setEnabled(false);
-        MenuItem actionEdit = mMenu.findItem(R.id.action_edit);
-        actionEdit.setVisible(false);
-        actionEdit.setEnabled(false);
-
     }
 
     @Override
     public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
         ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
-        viewPager.setCurrentItem(tab.getPosition());
+        int position = tab.getPosition();
+        viewPager.setCurrentItem(position);
     }
 
     @Override
     public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-
     }
 
     @Override
     public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
-
     }
 
+    @Override
+    public void onMarkerAddingIntent(LatLng latLng) {
+        Intent intent = new Intent(this, MarkerEditActivity.class);
+        intent.putExtra(MapNote.LATITUDE_KEY, latLng.latitude);
+        intent.putExtra(MapNote.LONGTITUDE_KEY, latLng.longitude);
+        intent.putExtra(MarkerEditActivity.REQUEST_KEY, MarkerEditActivity.REQUEST_ADD_MARKER);
+        startActivityForResult(intent, MarkerEditActivity.REQUEST_ADD_MARKER);
+    }
+
+    @Override
+    public void onMarkerEditingIntent(long mapNoteId) {
+        Intent intent = new Intent(this, MarkerEditActivity.class);
+        intent.putExtra(MapNote.ID_KEY, mapNoteId);
+        intent.putExtra(MarkerEditActivity.REQUEST_KEY, MarkerEditActivity.REQUEST_EDIT_MARKER);
+        startActivityForResult(intent, MarkerEditActivity.REQUEST_EDIT_MARKER);
+    }
 
     public class MapNotesPagerAdapter extends FragmentPagerAdapter {
 
@@ -214,11 +161,14 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         public Fragment getItem(int i) {
             switch (i) {
                 case MAP_VIEW_FRAGMENT_INDEX : {
-                    mMapFragment = MapViewFragment.newInstance(null, null);
+                    if (mMapFragment == null) {
+                        mMapFragment = MapViewFragment.newInstance();
+                    }
                     return mMapFragment;
                 }
                 case NOTES_LIST_FRAGMENT_INDEX : {
-                    return NotesListFragment.newInstance("","");
+                    mNotesListFragment = NotesListFragment.newInstance("","");
+                    return mNotesListFragment;
                 }
             }
             return null;
@@ -238,6 +188,12 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         @Override
         public int getCount() {
             return NUMBER_OF_PAGES;
+        }
+
+        public void refreshFragment (int position) {
+            if (getItem(position) instanceof MapNotesFragmentRefresher) {
+                ((MapNotesFragmentRefresher) getItem(position)).refreshFragment();
+            }
         }
     }
 

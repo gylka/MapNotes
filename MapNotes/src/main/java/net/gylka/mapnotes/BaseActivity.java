@@ -5,8 +5,6 @@ import android.support.v7.app.ActionBarActivity;
 
 public class BaseActivity extends ActionBarActivity {
 
-    public static String PACKAGE_NAME = "net.gylka.mapnotes";
-
     protected MapNotesDaoImpl mMapNotesDao;
 
     @Override

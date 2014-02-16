@@ -1,9 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="net.gylka.mapnotes.MapViewActivity" >
 
-<!--
     <item android:id="@+id/action_create_mapnote"
         android:title="@string/action_create_mapnote"
         android:orderInCategory="1"
@@ -16,10 +17,5 @@
         app:showAsAction="always"
         android:visible="false"
         android:enabled="false"/>
--->
-    <item android:id="@+id/action_copy_db"
-        android:title="@string/action_copy_db"
-        android:orderInCategory="100"
-        android:showAsAction="never"/>
 
 </menu>

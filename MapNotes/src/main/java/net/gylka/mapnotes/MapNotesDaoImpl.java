@@ -96,6 +96,21 @@ public class MapNotesDaoImpl implements MapNotesDao {
         return isMapNoteAlreadyInTable(db, id);
    }
 
+    @Override
+    public boolean deleteMapNote(long id) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        if (isMapNoteAlreadyInTable(id)) {
+            return (db.delete(NotesEntry.TABLE_NAME,NotesEntry._ID + " = ?", new String[]{Long.toString(id)}) != 0);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean deleteAllMapNotes() {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        return (db.delete(NotesEntry.TABLE_NAME, "1", null) != 0);
+    }
+
     private boolean isMapNoteAlreadyInTable(SQLiteDatabase db, long id) {
         Cursor cur = db.rawQuery("SELECT 1 FROM " + NotesEntry.TABLE_NAME +
                 " WHERE " + NotesEntry._ID + " = ?",

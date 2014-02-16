@@ -16,4 +16,8 @@ public interface MapNotesDao {
 
     boolean isMapNoteAlreadyInTable (long id);
 
+    boolean deleteMapNote(long id);
+
+    boolean deleteAllMapNotes();
+
 }

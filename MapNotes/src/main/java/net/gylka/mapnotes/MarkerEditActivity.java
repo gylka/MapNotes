@@ -62,15 +62,15 @@ public class MarkerEditActivity extends BaseActivity {
             mCurrentMapNote = new MapNote();
             mMapNotesDao = new MapNotesDaoImpl(getActivity().getApplicationContext());
             Intent intent = getActivity().getIntent();
-            mRequestCode = intent.getIntExtra(PACKAGE_NAME + REQUEST_KEY, 0);
+            mRequestCode = intent.getIntExtra(REQUEST_KEY, 0);
             switch (mRequestCode) {
                 case REQUEST_ADD_MARKER: {
-                    mCurrentMapNote.setLatLng(new LatLng(intent.getDoubleExtra(PACKAGE_NAME + MapNote.LATITUDE_KEY, 0),
-                            intent.getDoubleExtra(PACKAGE_NAME + MapNote.LONGTITUDE_KEY, 0)));
+                    mCurrentMapNote.setLatLng(new LatLng(intent.getDoubleExtra(MapNote.LATITUDE_KEY, 0),
+                            intent.getDoubleExtra(MapNote.LONGTITUDE_KEY, 0)));
                     break;
                 }
                 case REQUEST_EDIT_MARKER: {
-                    mCurrentMapNote = mMapNotesDao.getMapNote(intent.getLongExtra(PACKAGE_NAME + MapNote.ID_KEY, -1));
+                    mCurrentMapNote = mMapNotesDao.getMapNote(intent.getLongExtra(MapNote.ID_KEY, -1));
                     break;
                 }
             }
@@ -109,7 +109,7 @@ public class MarkerEditActivity extends BaseActivity {
                         case REQUEST_ADD_MARKER: {
                             long mapNoteId = mMapNotesDao.addNote(mCurrentMapNote);
                             Intent intent = new Intent();
-                            intent.putExtra(PACKAGE_NAME + MapNote.ID_KEY, mapNoteId);
+                            intent.putExtra(MapNote.ID_KEY, mapNoteId);
                             getActivity().setResult(RESULT_MARKER_ADDED, intent);
                             getActivity().finish();
                             break;
