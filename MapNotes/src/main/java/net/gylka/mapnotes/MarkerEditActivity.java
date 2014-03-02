@@ -27,6 +27,7 @@ public class MarkerEditActivity extends BaseActivity {
     public static final int RESULT_MARKER_ADDED = 200;
     public static final int RESULT_CANCELED = 201;
     public static final int RESULT_EDITED_SUCCESSFULLY = 202;
+    public static final int RESULT_MARKER_DELETED = 203;
     public static final int RESULT_ERROR = 250;
 
     @Override
@@ -65,8 +66,7 @@ public class MarkerEditActivity extends BaseActivity {
             mRequestCode = intent.getIntExtra(REQUEST_KEY, 0);
             switch (mRequestCode) {
                 case REQUEST_ADD_MARKER: {
-                    mCurrentMapNote.setLatLng(new LatLng(intent.getDoubleExtra(MapNote.LATITUDE_KEY, 0),
-                            intent.getDoubleExtra(MapNote.LONGTITUDE_KEY, 0)));
+                    mCurrentMapNote.setLatLng((LatLng) intent.getParcelableExtra(MapNote.LAT_LNG_KEY));
                     break;
                 }
                 case REQUEST_EDIT_MARKER: {
@@ -107,16 +107,18 @@ public class MarkerEditActivity extends BaseActivity {
                     mCurrentMapNote.setNote(edtMarkerNote.getText().toString());
                     switch (mRequestCode) {
                         case REQUEST_ADD_MARKER: {
-                            long mapNoteId = mMapNotesDao.addNote(mCurrentMapNote);
+                            mCurrentMapNote.setId(mMapNotesDao.addNote(mCurrentMapNote));
                             Intent intent = new Intent();
-                            intent.putExtra(MapNote.ID_KEY, mapNoteId);
+                            intent.putExtra(MapNote.MAP_NOTE_KEY, mCurrentMapNote);
                             getActivity().setResult(RESULT_MARKER_ADDED, intent);
                             getActivity().finish();
                             break;
                         }
                         case REQUEST_EDIT_MARKER: {
                             if (mMapNotesDao.updateMapNote(mCurrentMapNote.getId(), mCurrentMapNote)) {
-                                getActivity().setResult(RESULT_EDITED_SUCCESSFULLY);
+                                Intent intent = new Intent();
+                                intent.putExtra(MapNote.MAP_NOTE_KEY, mCurrentMapNote);
+                                getActivity().setResult(RESULT_EDITED_SUCCESSFULLY, intent);
                             } else {
                                 getActivity().setResult(RESULT_ERROR);
                             }

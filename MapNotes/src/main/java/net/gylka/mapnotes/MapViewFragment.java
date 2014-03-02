@@ -21,9 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapViewFragment extends SupportMapFragment implements MapNotesFragmentRefresher {
+public class MapViewFragment extends SupportMapFragment implements OnMapNoteManipulationListener {
 
-    private MapNote mSelectedMapNote;
+    public static final String SELECTED_MARKER_LATLNG_KEY = "SelectedMarkerLatLngKey";
+
     private Marker mSelectedMarker;
 
     private List<MapNote> mMapNotes;
@@ -31,7 +32,7 @@ public class MapViewFragment extends SupportMapFragment implements MapNotesFragm
     private Map<Marker, Long> mMapMarkers;
 
     private Menu mMenu;
-    private OnMarkerEditListener mOnMarkerEditListener;
+    private OnMarkerProcessIntentListener mMarkerProcessIntentListener;
 
     public static MapViewFragment newInstance() {
         MapViewFragment mapViewFragment = new MapViewFragment();
@@ -45,16 +46,18 @@ public class MapViewFragment extends SupportMapFragment implements MapNotesFragm
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         try {
-            mOnMarkerEditListener = (OnMarkerEditListener) activity;
+            mMarkerProcessIntentListener = (OnMarkerProcessIntentListener) activity;
+            mMarkerProcessIntentListener.AddOnMapNoteManipulationListener(this);
         } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString() + " must implement OnMarkerEditListener");
+            throw new ClassCastException(activity.toString() + " must implement OnMarkerProcessIntentListener");
         }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mOnMarkerEditListener = null;
+        mMarkerProcessIntentListener.RemoveOnMapNoteManipulationListener(this);
+        mMarkerProcessIntentListener = null;
     }
 
     @Override
@@ -68,38 +71,26 @@ public class MapViewFragment extends SupportMapFragment implements MapNotesFragm
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return super.onCreateView(inflater, container, savedInstanceState);
-    }
-
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.map_view_fragment, menu);
-        mMenu = menu;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_create_mapnote : {
-                if (mOnMarkerEditListener != null) {
-                    mOnMarkerEditListener.onMarkerAddingIntent(mSelectedMapNote.getLatLng());
+    public void onViewStateRestored(Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        GoogleMap googleMap = getMap();
+        if ((savedInstanceState != null) && (googleMap != null)) {
+            LatLng selectedMarkerLatLng = savedInstanceState.getParcelable(SELECTED_MARKER_LATLNG_KEY);
+            if (selectedMarkerLatLng != null) {
+                // Checking if selected Marker was new. getMarkerByLatLng() returns null is it was new
+                Marker selectedMarker = getMarkerByLatLng(selectedMarkerLatLng);
+                if (selectedMarker == null) {
+                    selectedMarker = googleMap.addMarker(new MarkerOptions().position(selectedMarkerLatLng));
                 }
-                break;
-            }
-            case R.id.action_edit : {
-                if (mOnMarkerEditListener != null) {
-                    mOnMarkerEditListener.onMarkerEditingIntent(mSelectedMapNote.getId());
-                }
+                selectMarker(selectedMarker);
             }
         }
-        return super.onOptionsItemSelected(item);
+
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = super.onCreateView(inflater, container, savedInstanceState);
         final GoogleMap googleMap = getMap();
         if (googleMap != null) {
             for (MapNote mapNote : mMapNotes) {
@@ -110,88 +101,162 @@ public class MapViewFragment extends SupportMapFragment implements MapNotesFragm
             googleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
                 @Override
                 public void onMapLongClick(LatLng latLng) {
-                    updateMapMarkers();
-                    mSelectedMapNote = new MapNote();
-                    mSelectedMapNote.setLatLng(latLng);
-                    mSelectedMarker = googleMap.addMarker(new MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)));
-                    MenuItem actionCreate = mMenu.findItem(R.id.action_create_mapnote);
-                    actionCreate.setVisible(true);
-                    actionCreate.setEnabled(true);
+                    Marker marker = googleMap.addMarker(new MarkerOptions().position(latLng));
+                    selectMarker(marker);
                 }
             });
 
             googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
                 @Override
                 public boolean onMarkerClick(Marker marker) {
-                    if (! isMarkerIsNew(marker)) {
-                        updateMapMarkers();
-                        MapNote mapNote = mMapNotesDao.getMapNote(mMapMarkers.get(marker));
-                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
-                        mSelectedMarker = marker;
-                        mSelectedMapNote = mapNote;
-
-                        MenuItem actionEdit = mMenu.findItem(R.id.action_edit);
-                        actionEdit.setVisible(true);
-                        actionEdit.setEnabled(true);
-                    }
+                    selectMarker(marker);
                     return true;
                 }
             });
 
         }
+        return view;
     }
 
-    private void hideMapViewMenuItems() {
-        if (mMenu != null) {
-            MenuItem actionCreate = mMenu.findItem(R.id.action_create_mapnote);
-            actionCreate.setVisible(false);
-            actionCreate.setEnabled(false);
-            MenuItem actionEdit = mMenu.findItem(R.id.action_edit);
-            actionEdit.setVisible(false);
-            actionEdit.setEnabled(false);
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (mSelectedMarker != null) {
+            outState.putParcelable(SELECTED_MARKER_LATLNG_KEY, mSelectedMarker.getPosition());
         }
     }
 
-    private boolean isMarkerIsNew(Marker marker) {
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.map_view_fragment, menu);
+        mMenu = menu;
+        if (mSelectedMarker != null) {
+            if (isMarkerNew(mSelectedMarker)) {
+                mMenu.findItem(R.id.action_create_mapnote).setVisible(true).setEnabled(true);
+                mMenu.findItem(R.id.action_edit).setVisible(false).setEnabled(false);
+                mMenu.findItem(R.id.action_delete).setVisible(false).setEnabled(false);
+                mMenu.findItem(R.id.action_cancel).setVisible(true).setEnabled(true);
+            } else {
+                mMenu.findItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
+                mMenu.findItem(R.id.action_edit).setVisible(true).setEnabled(true);
+                mMenu.findItem(R.id.action_delete).setVisible(true).setEnabled(true);
+                mMenu.findItem(R.id.action_cancel).setVisible(false).setEnabled(false);
+            }
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_create_mapnote : {
+                if (mMarkerProcessIntentListener != null) {
+                    mMarkerProcessIntentListener.onMarkerAddingIntent(mSelectedMarker.getPosition());
+                }
+                break;
+            }
+            case R.id.action_edit : {
+                if (mMarkerProcessIntentListener != null) {
+                    mMarkerProcessIntentListener.onMarkerEditingIntent(mMapMarkers.get(mSelectedMarker));
+                }
+                break;
+            }
+            case R.id.action_delete : {
+                if (mMarkerProcessIntentListener != null) {
+                    mMarkerProcessIntentListener.onMarkerDeletingIntent(mMapMarkers.get(mSelectedMarker));
+                }
+                break;
+            }
+            case R.id.action_cancel : {
+                deselectMarkers();
+                break;
+            }
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private boolean isMarkerNew(Marker marker) {
         if (mMapMarkers.containsKey(marker)) {
             return false;
         }
         return true;
     }
 
-    private void updateMapMarkers() {
-        if ((mSelectedMarker != null) && ! isMarkerIsNew(mSelectedMarker)) {
+    private Marker getMarkerByLatLng (LatLng latLng) {
+        for (Marker marker : mMapMarkers.keySet()) {
+            if (marker.getPosition().equals(latLng)){
+                return marker;
+            }
+        }
+        return null;
+    }
+
+    private void selectMarker (Marker marker) {
+        if (marker != mSelectedMarker) {
+            deselectMarkers();
+            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
+            mSelectedMarker = marker;
+        }
+        if (mMenu != null) {
+            if (isMarkerNew(mSelectedMarker)) {
+                mMenu.findItem(R.id.action_create_mapnote).setVisible(true).setEnabled(true);
+                mMenu.findItem(R.id.action_edit).setVisible(false).setEnabled(false);
+                mMenu.findItem(R.id.action_delete).setVisible(false).setEnabled(false);
+                mMenu.findItem(R.id.action_cancel).setVisible(true).setEnabled(true);
+            } else {
+                mMenu.findItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
+                mMenu.findItem(R.id.action_edit).setVisible(true).setEnabled(true);
+                mMenu.findItem(R.id.action_delete).setVisible(true).setEnabled(true);
+                mMenu.findItem(R.id.action_cancel).setVisible(false).setEnabled(false);
+            }
+        }
+
+    }
+
+    private void deselectMarkers() {
+        if ((mSelectedMarker != null) && ! isMarkerNew(mSelectedMarker)) {
             mSelectedMarker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+        } else {
+            if ((mSelectedMarker != null) && isMarkerNew(mSelectedMarker)) {
+                mSelectedMarker.remove();
+            }
         }
-        if ((mSelectedMarker != null) && isMarkerIsNew(mSelectedMarker)) {
-            mSelectedMarker.remove();
+        if (mMenu != null) {
+            mMenu.findItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
+            mMenu.findItem(R.id.action_edit).setVisible(false).setEnabled(false);
+            mMenu.findItem(R.id.action_delete).setVisible(false).setEnabled(false);
+            mMenu.findItem(R.id.action_cancel).setVisible(false).setEnabled(false);
         }
-        hideMapViewMenuItems();
+        mSelectedMarker = null;
     }
 
     @Override
-    public void refreshFragment() {
-        updateMapMarkers();
+    public void onMapNoteAdded(MapNote mapNote) {
+        LatLng selectedLatLng = mSelectedMarker.getPosition();
+        if(selectedLatLng.equals(mapNote.getLatLng())) {
+            mMapMarkers.put(mSelectedMarker, mapNote.getId());
+            selectMarker(mSelectedMarker);
+        }
     }
 
-    public void onMarkerAdded(long mapNoteId) {
-        mMapMarkers.put(mSelectedMarker, mapNoteId);
-        updateMapMarkers();
+    @Override
+    public void onMapNoteEdited(MapNote mapNote) {
+        selectMarker(mSelectedMarker);
     }
 
-    public void onMarkerEdited() {
-        updateMapMarkers();
+    @Override
+    public void onMapNoteDeleted(MapNote mapNote) {
+        long mapNoteId = mapNote.getId();
+        for (Map.Entry<Marker,Long> entry : mMapMarkers.entrySet ()) {
+            if (entry.getValue() == mapNoteId) {
+                Marker marker = entry.getKey();
+                marker.remove();
+                mMapMarkers.remove(entry.getKey());
+                break;
+            }
+        }
     }
 
-    public void onMarkerAddOrEditCanceled() {
-        updateMapMarkers();
-    }
-
-    public interface OnMarkerEditListener {
-
-        public void onMarkerAddingIntent(LatLng latLng);
-
-        public void onMarkerEditingIntent(long mapNoteId);
-    }
+    //public interface On
 
 }

@@ -2,6 +2,7 @@ package net.gylka.mapnotes;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -9,6 +10,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -17,16 +19,37 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class NotesListFragment extends Fragment implements MapNotesFragmentRefresher {
+import static net.gylka.mapnotes.R.color;
+
+public class NotesListFragment extends Fragment implements OnMapNoteManipulationListener {
 
     private ListView mNotesListView;
     private MapNotesListAdapter mNotesListAdapter;
+    private OnMarkerProcessIntentListener mMarkerProcessIntentListener;
 
     public static NotesListFragment newInstance() {
         NotesListFragment fragment = new NotesListFragment();
         return fragment;
     }
     public NotesListFragment() {
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        try {
+            mMarkerProcessIntentListener = (OnMarkerProcessIntentListener) activity;
+            mMarkerProcessIntentListener.AddOnMapNoteManipulationListener(this);
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString() + " must implement OnMarkerProcessIntentListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mMarkerProcessIntentListener.RemoveOnMapNoteManipulationListener(this);
+        mMarkerProcessIntentListener = null;
     }
 
     @Override
@@ -41,22 +64,38 @@ public class NotesListFragment extends Fragment implements MapNotesFragmentRefre
         mNotesListView = (ListView) view.findViewById(R.id.listMapNotes);
         mNotesListAdapter = new MapNotesListAdapter(getActivity().getApplicationContext(), R.layout.list_mapnote, getAllMapNotes());
         mNotesListView.setAdapter(mNotesListAdapter);
-        return view;
-    }
+        mNotesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-    @Override
-    public void refreshFragment() {
-        Log.d("refreshList", "Before refresh = " + mNotesListAdapter.getCount());
-        mNotesListAdapter.clear();
-        ArrayList<MapNote> mapNotes = getAllMapNotes();
-        mNotesListAdapter.addAll(mapNotes);
-        Log.d("refreshList", "After refresh = " + mNotesListAdapter.getCount());
-        mNotesListAdapter.notifyDataSetChanged();
+            }
+        });
+        return view;
     }
 
     private ArrayList<MapNote> getAllMapNotes() {
         MapNotesDao mapNotesDao = new MapNotesDaoImpl(getActivity());
         return mapNotesDao.getAllNotes();
+    }
+
+    @Override
+    public void onMapNoteAdded(MapNote mapNote) {
+        mNotesListAdapter.add(mapNote);
+        mNotesListAdapter.notifyDataSetChanged();
+        Log.d("NotesListFragment", "onAdded mapnote");
+    }
+
+    @Override
+    public void onMapNoteEdited(MapNote mapNote) {
+        int mapNotesListIndex = mNotesListAdapter.getItemIndexByMapNoteId(mapNote.getId());
+        mNotesListAdapter.getItem(mapNotesListIndex).updateMapNoteSavingId(mapNote);
+        mNotesListAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onMapNoteDeleted(MapNote mapNote) {
+        mNotesListAdapter.removeItemByMapNoteId(mapNote.getId());
+        mNotesListAdapter.notifyDataSetChanged();
     }
 
     public static class MapNotesListAdapter extends ArrayAdapter<MapNote> {
@@ -85,6 +124,23 @@ public class NotesListFragment extends Fragment implements MapNotesFragmentRefre
             txtMapNoteLongtitude.setText(Double.toString(getItem(position).getLatLng().longitude));
 
             return view;
+        }
+
+        private int getItemIndexByMapNoteId(long mapNoteId) {
+            for (int i=0; i < getCount(); i++) {
+                if (getItem(i).getId() == mapNoteId) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private void removeItemByMapNoteId(long mapNoteId) {
+            for (int i=0; i < getCount(); i++) {
+                if (getItem(i).getId() == mapNoteId) {
+                    remove(getItem(i));
+                }
+            }
         }
 
     }

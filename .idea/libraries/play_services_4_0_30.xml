@@ -1,6 +1,7 @@
 <component name="libraryTable">
-  <library name="ComGoogleAndroidGmsPlayServices4030.aar">
+  <library name="play-services-4.0.30">
     <CLASSES>
+      <root url="file://$PROJECT_DIR$/MapNotes/build/exploded-bundles/ComGoogleAndroidGmsPlayServices4030.aar/res" />
       <root url="jar://$PROJECT_DIR$/MapNotes/build/exploded-bundles/ComGoogleAndroidGmsPlayServices4030.aar/classes.jar!/" />
     </CLASSES>
     <JAVADOC />
