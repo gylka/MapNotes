@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Locale;
 
 
-public class MapViewActivity extends BaseActivity implements ActionBar.TabListener, OnMarkerProcessIntentListener {
+public class MapViewActivity extends BaseActivity implements ActionBar.TabListener, OnMarkerProcessIntentListener,
+        NotesListManipulationListenerAdapter {
 
     private Menu mMenu;
 
@@ -28,20 +29,22 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
     private MapNotesPagerAdapter mMapNotesPagerAdapter;
     private int mCurrentViewPagerItem;
     private List<OnMapNoteManipulationListener> mMapNoteManipulationListeners;
+    private List<NotesListFragment.OnNotesListManipulationListener> mOnNotesListManipulationListeners;
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(MapNotesPagerAdapter.MAP_NOTES_PAGER_CURRENT_FRAGMENT_KEY, mCurrentViewPagerItem);
-        Log.d("Putting outState: ", "" +mCurrentViewPagerItem);
+        Log.d("Putting outState: ", "" + mCurrentViewPagerItem);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        mMapNoteManipulationListeners = new ArrayList<OnMapNoteManipulationListener>();
+        mOnNotesListManipulationListeners = new ArrayList<NotesListFragment.OnNotesListManipulationListener>();
+        mOnNotesListManipulationListeners.add(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map_view);
-
-        mMapNoteManipulationListeners = new ArrayList<OnMapNoteManipulationListener>();
 
         mActionBar = getSupportActionBar();
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -151,7 +154,6 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
 
     @Override
     public void onMarkerDeletingIntent(long mapNoteId) {
-        Log.d("Activity.MarkerDeleteIntent","Delete intent");
         MapNote mapNote = mMapNotesDao.getMapNote(mapNoteId);
         if (mMapNotesDao.deleteMapNote(mapNoteId)) {
             for(OnMapNoteManipulationListener onMapNoteManipulationListener : mMapNoteManipulationListeners) {
@@ -170,6 +172,29 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         mMapNoteManipulationListeners.remove(onMapNoteManipulationListener);
     }
 
+    @Override
+    public void addOnNotesListManipulationListener(NotesListFragment.OnNotesListManipulationListener listener) {
+        mOnNotesListManipulationListeners.add(listener);
+    }
+
+    @Override
+    public void removeOnNotesListManipulationListener(NotesListFragment.OnNotesListManipulationListener listener) {
+        mOnNotesListManipulationListeners.remove(listener);
+    }
+
+    @Override
+    public List<NotesListFragment.OnNotesListManipulationListener> getOnNotesListManipulationListeners() {
+        return mOnNotesListManipulationListeners;
+    }
+
+    @Override
+    public void onMapNoteListItemSelected(long mapNoteId) {
+        final ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
+        viewPager.setCurrentItem(MapNotesPagerAdapter.MAP_VIEW_FRAGMENT_INDEX);
+    }
+
+    /** ********************************************************************************************
+     */
     public class MapNotesPagerAdapter extends FragmentPagerAdapter {
 
         public static final String MAP_NOTES_PAGER_CURRENT_FRAGMENT_KEY = "MapNotesPagerCurrentFragment";

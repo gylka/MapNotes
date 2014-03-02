@@ -10,6 +10,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -21,8 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MapViewFragment extends SupportMapFragment implements OnMapNoteManipulationListener {
+public class MapViewFragment extends SupportMapFragment implements OnMapNoteManipulationListener,
+        NotesListFragment.OnNotesListManipulationListener {
 
+    public static final int CAMERA_ANIMATION_DURATION = 1000;
     public static final String SELECTED_MARKER_LATLNG_KEY = "SelectedMarkerLatLngKey";
 
     private Marker mSelectedMarker;
@@ -33,6 +36,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
 
     private Menu mMenu;
     private OnMarkerProcessIntentListener mMarkerProcessIntentListener;
+    private NotesListManipulationListenerAdapter mNotesListManipulationListenerAdapter;
 
     public static MapViewFragment newInstance() {
         MapViewFragment mapViewFragment = new MapViewFragment();
@@ -45,19 +49,32 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        Log.d("MapViewFragment", "onAtach");
         try {
             mMarkerProcessIntentListener = (OnMarkerProcessIntentListener) activity;
             mMarkerProcessIntentListener.AddOnMapNoteManipulationListener(this);
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString() + " must implement OnMarkerProcessIntentListener");
         }
+        if (activity instanceof NotesListManipulationListenerAdapter) {
+            mNotesListManipulationListenerAdapter = (NotesListManipulationListenerAdapter) activity;
+            mNotesListManipulationListenerAdapter.addOnNotesListManipulationListener(this);
+        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mMarkerProcessIntentListener.RemoveOnMapNoteManipulationListener(this);
-        mMarkerProcessIntentListener = null;
+        Log.d("MapViewFragment", "onDetach");
+        if (mMarkerProcessIntentListener != null) {
+            mMarkerProcessIntentListener.RemoveOnMapNoteManipulationListener(this);
+            mMarkerProcessIntentListener = null;
+        }
+        if (mNotesListManipulationListenerAdapter != null) {
+            mNotesListManipulationListenerAdapter.removeOnNotesListManipulationListener(this);
+            mNotesListManipulationListenerAdapter = null;
+        }
+
     }
 
     @Override
@@ -191,6 +208,15 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         return null;
     }
 
+    private Marker getMarkerByMapNoteId (long mapNoteId) {
+        for (Map.Entry<Marker,Long> entry : mMapMarkers.entrySet()) {
+            if (entry.getValue() == mapNoteId) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     private void selectMarker (Marker marker) {
         if (marker != mSelectedMarker) {
             deselectMarkers();
@@ -257,6 +283,27 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         }
     }
 
-    //public interface On
+    private void setCameraOnMapNote(long mapNoteId) {
+        GoogleMap googleMap = getMap();
+        if (googleMap != null) {
+            Marker marker = getMarkerByMapNoteId(mapNoteId);
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()), CAMERA_ANIMATION_DURATION, new GoogleMap.CancelableCallback() {
+                @Override
+                public void onFinish() {
+                }
+
+                @Override
+                public void onCancel() {
+                }
+            });
+
+        }
+    }
+
+    @Override
+    public void onMapNoteListItemSelected(long mapNoteId) {
+        selectMarker(getMarkerByMapNoteId(mapNoteId));
+        setCameraOnMapNote(mapNoteId);
+    }
 
 }
