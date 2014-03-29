@@ -107,19 +107,24 @@ public class NotesListFragment extends Fragment implements OnMapNoteManipulation
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            View view = inflater.inflate(R.layout.list_mapnote, parent, false);
-
-            TextView txtMapNoteTitle = (TextView) view.findViewById(R.id.txtMapNoteTitle);
-            txtMapNoteTitle.setText(getItem(position).getTitle());
-            TextView txtMapNoteDescription = (TextView) view.findViewById(R.id.txtMapNoteDescription);
-            txtMapNoteDescription.setText(getItem(position).getNote());
-            TextView txtMapNoteLatitude = (TextView) view.findViewById(R.id.txtMapNoteLatitude);
-            txtMapNoteLatitude.setText(Location.convert(getItem(position).getLatLng().latitude, Location.FORMAT_SECONDS));
-            TextView txtMapNoteLongtitude = (TextView) view.findViewById(R.id.txtMapNoteLongtitude);
-            txtMapNoteLongtitude.setText(Location.convert(getItem(position).getLatLng().longitude, Location.FORMAT_SECONDS));
-
-            return view;
+            NotesListItemViewHolder viewHolder;
+            if (convertView == null) {
+                LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                convertView = inflater.inflate(R.layout.list_mapnote, parent, false);
+                viewHolder = new NotesListItemViewHolder();
+                viewHolder.txtMapNoteTitle = (TextView) convertView.findViewById(R.id.txtMapNoteTitle);
+                viewHolder.txtMapNoteDescription = (TextView) convertView.findViewById(R.id.txtMapNoteDescription);
+                viewHolder.txtMapNoteLatitude = (TextView) convertView.findViewById(R.id.txtMapNoteLatitude);
+                viewHolder.txtMapNoteLongtitude = (TextView) convertView.findViewById(R.id.txtMapNoteLongtitude);
+                convertView.setTag(viewHolder);
+            } else {
+                viewHolder = (NotesListItemViewHolder) convertView.getTag();
+            }
+            viewHolder.txtMapNoteTitle.setText(getItem(position).getTitle());
+            viewHolder.txtMapNoteDescription.setText(getItem(position).getNote());
+            viewHolder.txtMapNoteLatitude.setText(Location.convert(getItem(position).getLatLng().latitude, Location.FORMAT_SECONDS));
+            viewHolder.txtMapNoteLongtitude.setText(Location.convert(getItem(position).getLatLng().longitude, Location.FORMAT_SECONDS));
+            return convertView;
         }
 
         private int getItemIndexByMapNoteId(long mapNoteId) {
@@ -139,6 +144,15 @@ public class NotesListFragment extends Fragment implements OnMapNoteManipulation
             }
         }
 
+        /** ********************************************************************************************
+         */
+
+        private static class NotesListItemViewHolder {
+            TextView txtMapNoteTitle;
+            TextView txtMapNoteDescription;
+            TextView txtMapNoteLatitude;
+            TextView txtMapNoteLongtitude;
+        }
     }
 
     /** ********************************************************************************************
