@@ -187,6 +187,13 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
                 }
             });
 
+            googleMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                @Override
+                public void onInfoWindowClick(Marker marker) {
+                    marker.hideInfoWindow();
+                }
+            });
+
             googleMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
                 @Override
                 public boolean onMyLocationButtonClick() {
