@@ -163,6 +163,11 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
     }
 
     @Override
+    public void onMarkerAdditionalInfoIntent(long mapNoteId) {
+
+    }
+
+    @Override
     public void AddOnMapNoteManipulationListener(OnMapNoteManipulationListener onMapNoteManipulationListener) {
         mMapNoteManipulationListeners.add(onMapNoteManipulationListener);
     }

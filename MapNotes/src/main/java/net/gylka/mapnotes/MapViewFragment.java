@@ -1,6 +1,10 @@
 package net.gylka.mapnotes;
 
 import android.app.Activity;
+import android.content.Context;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,6 +13,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -26,16 +31,20 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         NotesListFragment.OnNotesListManipulationListener {
 
     public static final int CAMERA_ANIMATION_DURATION = 1000;
+
     public static final String SELECTED_MARKER_LATLNG_KEY = "SelectedMarkerLatLngKey";
+    public static final String MARKER_LATLNG_WITH_INFO_WINDOW_SHOWN = "MarkerWithInfoWindowShown";
 
     private Marker mSelectedMarker;
+    private Marker mMarkerWithInfoWindowShown;
 
     private List<MapNote> mMapNotes;
     private MapNotesDao mMapNotesDao;
     private Map<Marker, Long> mMapMarkers;
 
     private Menu mMenu;
-    private OnMarkerProcessIntentListener mMarkerProcessIntentListener;
+    private LayoutInflater mInflater;
+    private OnMarkerProcessIntentListener mOnMarkerProcessIntentListener;
     private NotesListManipulationListenerAdapter mNotesListManipulationListenerAdapter;
 
     public static MapViewFragment newInstance() {
@@ -49,10 +58,9 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        Log.d("MapViewFragment", "onAtach");
         try {
-            mMarkerProcessIntentListener = (OnMarkerProcessIntentListener) activity;
-            mMarkerProcessIntentListener.AddOnMapNoteManipulationListener(this);
+            mOnMarkerProcessIntentListener = (OnMarkerProcessIntentListener) activity;
+            mOnMarkerProcessIntentListener.AddOnMapNoteManipulationListener(this);
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString() + " must implement OnMarkerProcessIntentListener");
         }
@@ -64,17 +72,16 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
 
     @Override
     public void onDetach() {
-        super.onDetach();
         Log.d("MapViewFragment", "onDetach");
-        if (mMarkerProcessIntentListener != null) {
-            mMarkerProcessIntentListener.RemoveOnMapNoteManipulationListener(this);
-            mMarkerProcessIntentListener = null;
+        if (mOnMarkerProcessIntentListener != null) {
+            mOnMarkerProcessIntentListener.RemoveOnMapNoteManipulationListener(this);
+            mOnMarkerProcessIntentListener = null;
         }
         if (mNotesListManipulationListenerAdapter != null) {
             mNotesListManipulationListenerAdapter.removeOnNotesListManipulationListener(this);
             mNotesListManipulationListenerAdapter = null;
         }
-
+        super.onDetach();
     }
 
     @Override
@@ -100,6 +107,12 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
                     selectedMarker = googleMap.addMarker(new MarkerOptions().position(selectedMarkerLatLng));
                 }
                 selectMarker(selectedMarker);
+
+                LatLng markerWithInfoWindowShownLatLng = savedInstanceState.getParcelable(MARKER_LATLNG_WITH_INFO_WINDOW_SHOWN);
+                if (selectedMarkerLatLng.equals(markerWithInfoWindowShownLatLng)) {
+                    mSelectedMarker.showInfoWindow();
+                    mMarkerWithInfoWindowShown = mSelectedMarker;
+                }
             }
         }
 
@@ -108,12 +121,18 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = super.onCreateView(inflater, container, savedInstanceState);
+        mInflater = inflater;
         final GoogleMap googleMap = getMap();
         if (googleMap != null) {
             for (MapNote mapNote : mMapNotes) {
                 Marker marker = googleMap.addMarker(new MarkerOptions().position(mapNote.getLatLng()));
                 mMapMarkers.put(marker, mapNote.getId());
             }
+
+            NoteInfoWindowAdapter infoWindowAdapter = new NoteInfoWindowAdapter();
+            googleMap.setInfoWindowAdapter(infoWindowAdapter);
+            googleMap.setMyLocationEnabled(true);
+            googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
             googleMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
                 @Override
@@ -126,7 +145,57 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
             googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
                 @Override
                 public boolean onMarkerClick(Marker marker) {
-                    selectMarker(marker);
+                    Log.d("mSelectedMarker address", "" + mSelectedMarker);
+                    if (mSelectedMarker != null) {
+                        Log.d("mSelectedMarker.getId()", "" + mSelectedMarker.getId());
+                    }
+                    Log.d("marker address", "" + marker);
+                    if (marker != null) {
+                        Log.d("marker.getId()", "" + marker.getId());
+                    }
+                    Log.d("mMarkerWithInfoWindowShown address", "" + mMarkerWithInfoWindowShown);
+                    if (mMarkerWithInfoWindowShown != null) {
+                        Log.d("mMarkerWithInfoWindowShown.getId()", "" + mMarkerWithInfoWindowShown.getId());
+                    }
+
+                    Log.d("mSelected -> Marker Equals", ""+marker.equals(mSelectedMarker));
+                    Log.d("Marker IsNew", "" + isMarkerNew(marker));
+                    Log.d("Marker -> mMarkerWithInfoWindowShown", ""+marker.equals(mMarkerWithInfoWindowShown));
+
+                    // if changed selection - hide InfoWindow on previous marker;
+                    if ( ! marker.equals(mSelectedMarker) ) {
+                        if (mMarkerWithInfoWindowShown != null) {
+                            mMarkerWithInfoWindowShown.hideInfoWindow();
+                            mMarkerWithInfoWindowShown = null;
+                        }
+                        selectMarker(marker);
+                    } else {
+                        if( ! isMarkerNew(marker)) {
+                            if (marker.equals(mMarkerWithInfoWindowShown)) {
+                                Log.d("Hide InfoWindow Procedure", "");
+                                mMarkerWithInfoWindowShown.hideInfoWindow();
+                                mMarkerWithInfoWindowShown = null;
+                            } else {
+                                Log.d("Show InfoWindow Procedure", "");
+                                mMarkerWithInfoWindowShown = marker;
+                                mMarkerWithInfoWindowShown.showInfoWindow();
+                                setCameraOnMapNote(mMapMarkers.get(marker));
+                            }
+                        }
+                    }
+
+                    return true;
+                }
+            });
+
+            googleMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+                @Override
+                public boolean onMyLocationButtonClick() {
+                    LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                    String provider = locationManager.getBestProvider(new Criteria(), false);
+                    Location currentLocation = locationManager.getLastKnownLocation(provider);
+                    LatLng currentLatLng = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+                    setCameraOnLatLng(currentLatLng);
                     return true;
                 }
             });
@@ -140,6 +209,9 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         super.onSaveInstanceState(outState);
         if (mSelectedMarker != null) {
             outState.putParcelable(SELECTED_MARKER_LATLNG_KEY, mSelectedMarker.getPosition());
+        }
+        if (mMarkerWithInfoWindowShown != null) {
+            outState.putParcelable(MARKER_LATLNG_WITH_INFO_WINDOW_SHOWN, mMarkerWithInfoWindowShown.getPosition());
         }
     }
 
@@ -167,20 +239,20 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_create_mapnote : {
-                if (mMarkerProcessIntentListener != null) {
-                    mMarkerProcessIntentListener.onMarkerAddingIntent(mSelectedMarker.getPosition());
+                if (mOnMarkerProcessIntentListener != null) {
+                    mOnMarkerProcessIntentListener.onMarkerAddingIntent(mSelectedMarker.getPosition());
                 }
                 break;
             }
             case R.id.action_edit : {
-                if (mMarkerProcessIntentListener != null) {
-                    mMarkerProcessIntentListener.onMarkerEditingIntent(mMapMarkers.get(mSelectedMarker));
+                if (mOnMarkerProcessIntentListener != null) {
+                    mOnMarkerProcessIntentListener.onMarkerEditingIntent(mMapMarkers.get(mSelectedMarker));
                 }
                 break;
             }
             case R.id.action_delete : {
-                if (mMarkerProcessIntentListener != null) {
-                    mMarkerProcessIntentListener.onMarkerDeletingIntent(mMapMarkers.get(mSelectedMarker));
+                if (mOnMarkerProcessIntentListener != null) {
+                    mOnMarkerProcessIntentListener.onMarkerDeletingIntent(mMapMarkers.get(mSelectedMarker));
                 }
                 break;
             }
@@ -218,7 +290,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     }
 
     private void selectMarker (Marker marker) {
-        if (marker != mSelectedMarker) {
+        if ( ! marker.equals(mSelectedMarker) ) {
             deselectMarkers();
             marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET));
             mSelectedMarker = marker;
@@ -283,11 +355,10 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         }
     }
 
-    private void setCameraOnMapNote(long mapNoteId) {
+    private void setCameraOnLatLng (LatLng location) {
         GoogleMap googleMap = getMap();
         if (googleMap != null) {
-            Marker marker = getMarkerByMapNoteId(mapNoteId);
-            googleMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()), CAMERA_ANIMATION_DURATION, new GoogleMap.CancelableCallback() {
+            googleMap.animateCamera(CameraUpdateFactory.newLatLng(location), CAMERA_ANIMATION_DURATION, new GoogleMap.CancelableCallback() {
                 @Override
                 public void onFinish() {
                 }
@@ -296,7 +367,14 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
                 public void onCancel() {
                 }
             });
+        }
 
+    }
+
+    private void setCameraOnMapNote(long mapNoteId) {
+        if (getMap() != null) {
+            Marker marker = getMarkerByMapNoteId(mapNoteId);
+            setCameraOnLatLng(marker.getPosition());
         }
     }
 
@@ -306,4 +384,25 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         setCameraOnMapNote(mapNoteId);
     }
 
+    /**********************************************************************************************/
+
+    public class NoteInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
+
+        @Override
+        public View getInfoWindow(Marker marker) {
+            View view = mInflater.inflate(R.layout.info_window_mapview, null, false);
+            MapNote mapNote = mMapNotesDao.getMapNote(mMapMarkers.get(marker));
+            TextView txtInfoWindowTitle = (TextView)view.findViewById(R.id.txtInfoWindowTitle);
+            txtInfoWindowTitle.setText(mapNote.getTitle());
+            TextView txtInfoWindowNote = (TextView)view.findViewById(R.id.txtInfoWindowNote);
+            txtInfoWindowNote.setText(mapNote.getNote());
+            return view;
+        }
+
+        @Override
+        public View getInfoContents(Marker marker) {
+            return null;
+        }
+
+    }
 }

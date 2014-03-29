@@ -104,6 +104,10 @@ public class NotesListFragment extends Fragment implements OnMapNoteManipulation
         mNotesListAdapter.notifyDataSetChanged();
     }
 
+    public void selectMapNote(int mapNoteId) {
+
+    }
+
     /** ********************************************************************************************
      */
     public static class MapNotesListAdapter extends ArrayAdapter<MapNote> {

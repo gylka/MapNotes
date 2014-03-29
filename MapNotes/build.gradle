@@ -3,7 +3,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.7.+'
+        classpath 'com.android.tools.build:gradle:0.9.+'
     }
 }
 apply plugin: 'android'
@@ -11,6 +11,9 @@ apply plugin: 'android'
 repositories {
     mavenCentral()
 }
+
+SYSTEM_VARIABLE_MAPNOTES_PATH = 'MAP_NOTES_KEYSTORE_PATH'
+MAPNOTES_PASSWORD_FILE = 'mapnotes.xml'
 
 android {
     compileSdkVersion 19
@@ -22,8 +25,19 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    signingConfigs {
+        releaseSigning {
+            storeFile getKeyStoreFile()
+            storePassword  getKeyStorePassword()
+            keyAlias getAlias()
+            keyPassword getAliasPassword()
+        }
+    }
+
     buildTypes {
-        release {
+       release {
+            signingConfig signingConfigs.releaseSigning
             runProguard false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
@@ -34,4 +48,49 @@ dependencies {
     compile 'com.android.support:support-v4:19.0.0'
     compile 'com.android.support:appcompat-v7:19.0.0'
     compile 'com.google.android.gms:play-services:4.0.30'
+}
+
+
+def File getPasswordFile() {
+    def keyStorePathString = System.getenv(SYSTEM_VARIABLE_MAPNOTES_PATH)
+    assert keyStorePathString != null , 'System variable to Mapnotes keystore path is not defined'
+    def keyStorePath =  file(keyStorePathString)
+    assert keyStorePath != null, 'Mapnotes keystore directory not found'
+    def passwordFile = file(keyStorePath.path + File.separator + MAPNOTES_PASSWORD_FILE)
+    assert passwordFile != null, 'Mapnotes password file not found'
+    return passwordFile
+}
+
+def File getKeyStoreFile() {
+    def passwordFile = getPasswordFile()
+    def parsedPasswordFile = (new XmlParser()).parse(passwordFile)
+    String keyStoreFileName = parsedPasswordFile.keysotre_name.text()
+    assert (keyStoreFileName != null) || keyStoreFileName.isEmpty(), 'Keystore file name node not found in XML file'
+    def keyStoreFile = file(passwordFile.parent + File.separator + keyStoreFileName)
+    assert keyStoreFile != null, 'Keystore file not found'
+    return keyStoreFile
+}
+
+def String getKeyStorePassword() {
+    def passwordFile = getPasswordFile()
+    def parsedPasswordFile = (new XmlParser()).parse(passwordFile)
+    String keyStorePassword = parsedPasswordFile.keystore_password.text()
+    assert keyStorePassword != null, 'Keystore password node not found in XML file'
+    return keyStorePassword
+}
+
+def String getAlias() {
+    def passwordFile = getPasswordFile()
+    def parsedPasswordFile = (new XmlParser()).parse(passwordFile)
+    String keyAlias = parsedPasswordFile.key_alias.text()
+    assert keyAlias != null, 'Key alias node not found in XML file'
+    return keyAlias
+}
+
+def String getAliasPassword() {
+    def passwordFile = getPasswordFile()
+    def parsedPasswordFile = (new XmlParser()).parse(passwordFile)
+    String keyPassword = parsedPasswordFile.key_password.text()
+    assert keyPassword != null, 'Key password node not found in XML file'
+    return keyPassword
 }

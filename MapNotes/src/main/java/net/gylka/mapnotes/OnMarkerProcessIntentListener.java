@@ -10,6 +10,8 @@ public interface OnMarkerProcessIntentListener {
 
     void onMarkerDeletingIntent(long mapNoteId);
 
+    void onMarkerAdditionalInfoIntent(long mapNoteId);
+
     void AddOnMapNoteManipulationListener(OnMapNoteManipulationListener onMapNoteManipulationListener);
 
     void RemoveOnMapNoteManipulationListener(OnMapNoteManipulationListener onMapNoteManipulationListener);
