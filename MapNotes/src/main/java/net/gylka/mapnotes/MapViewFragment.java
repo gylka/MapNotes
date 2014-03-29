@@ -144,23 +144,6 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
             googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
                 @Override
                 public boolean onMarkerClick(Marker marker) {
-                    Log.d("mSelectedMarker address", "" + mSelectedMarker);
-                    if (mSelectedMarker != null) {
-                        Log.d("mSelectedMarker.getId()", "" + mSelectedMarker.getId());
-                    }
-                    Log.d("marker address", "" + marker);
-                    if (marker != null) {
-                        Log.d("marker.getId()", "" + marker.getId());
-                    }
-                    Log.d("mMarkerWithInfoWindowShown address", "" + mMarkerWithInfoWindowShown);
-                    if (mMarkerWithInfoWindowShown != null) {
-                        Log.d("mMarkerWithInfoWindowShown.getId()", "" + mMarkerWithInfoWindowShown.getId());
-                    }
-
-                    Log.d("mSelected -> Marker Equals", ""+marker.equals(mSelectedMarker));
-                    Log.d("Marker IsNew", "" + isMarkerNew(marker));
-                    Log.d("Marker -> mMarkerWithInfoWindowShown", ""+marker.equals(mMarkerWithInfoWindowShown));
-
                     // if changed selection - hide InfoWindow on previous marker;
                     if ( ! marker.equals(mSelectedMarker) ) {
                         if (mMarkerWithInfoWindowShown != null) {
@@ -171,11 +154,9 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
                     } else {
                         if( ! isMarkerNew(marker)) {
                             if (marker.equals(mMarkerWithInfoWindowShown)) {
-                                Log.d("Hide InfoWindow Procedure", "");
                                 mMarkerWithInfoWindowShown.hideInfoWindow();
                                 mMarkerWithInfoWindowShown = null;
                             } else {
-                                Log.d("Show InfoWindow Procedure", "");
                                 mMarkerWithInfoWindowShown = marker;
                                 mMarkerWithInfoWindowShown.showInfoWindow();
                                 setCameraOnMapNote(mMapMarkers.get(marker));
