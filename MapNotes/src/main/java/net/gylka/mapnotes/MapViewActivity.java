@@ -11,6 +11,8 @@ import android.support.v7.app.ActionBar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -52,6 +54,15 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         mMapNotesPagerAdapter = new MapNotesPagerAdapter(getSupportFragmentManager());
         final ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
         viewPager.setAdapter(mMapNotesPagerAdapter);
+
+        // Removing gestures (swiping included) on ViewPager
+        viewPager.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true;
+            }
+        });
+
         viewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int i) {
