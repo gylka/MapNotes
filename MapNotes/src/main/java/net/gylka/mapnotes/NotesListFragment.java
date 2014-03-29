@@ -2,31 +2,28 @@ package net.gylka.mapnotes;
 
 import android.app.Activity;
 import android.content.Context;
+import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class NotesListFragment extends Fragment implements OnMapNoteManipulationListener {
 
-    private ListView mNotesListView;
     private MapNotesListAdapter mNotesListAdapter;
     private OnMarkerProcessIntentListener mMarkerProcessIntentListener;
     private NotesListManipulationListenerAdapter mNotesListManipulationListenerAdapter;
 
     public static NotesListFragment newInstance() {
-        NotesListFragment fragment = new NotesListFragment();
-        return fragment;
+        return new NotesListFragment();
     }
     public NotesListFragment() {
     }
@@ -56,19 +53,12 @@ public class NotesListFragment extends Fragment implements OnMapNoteManipulation
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_notes_list, container, false);
-        mNotesListView = (ListView) view.findViewById(R.id.listMapNotes);
+        ListView notesListView = (ListView) view.findViewById(R.id.listMapNotes);
         mNotesListAdapter = new MapNotesListAdapter(getActivity().getApplicationContext(), R.layout.list_mapnote, getAllMapNotes());
-        mNotesListView.setAdapter(mNotesListAdapter);
-//        mNotesListView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-        mNotesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        notesListView.setAdapter(mNotesListAdapter);
+        notesListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 MapNote mapNote = mNotesListAdapter.getItem(position);
@@ -104,10 +94,6 @@ public class NotesListFragment extends Fragment implements OnMapNoteManipulation
         mNotesListAdapter.notifyDataSetChanged();
     }
 
-    public void selectMapNote(int mapNoteId) {
-
-    }
-
     /** ********************************************************************************************
      */
     public static class MapNotesListAdapter extends ArrayAdapter<MapNote> {
@@ -124,16 +110,14 @@ public class NotesListFragment extends Fragment implements OnMapNoteManipulation
             LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View view = inflater.inflate(R.layout.list_mapnote, parent, false);
 
-            TextView txtMapNoteId = (TextView) view.findViewById(R.id.txtMapNoteId);
-            txtMapNoteId.setText(Long.toString(getItem(position).getId()));
             TextView txtMapNoteTitle = (TextView) view.findViewById(R.id.txtMapNoteTitle);
             txtMapNoteTitle.setText(getItem(position).getTitle());
             TextView txtMapNoteDescription = (TextView) view.findViewById(R.id.txtMapNoteDescription);
             txtMapNoteDescription.setText(getItem(position).getNote());
             TextView txtMapNoteLatitude = (TextView) view.findViewById(R.id.txtMapNoteLatitude);
-            txtMapNoteLatitude.setText(Double.toString(getItem(position).getLatLng().latitude));
+            txtMapNoteLatitude.setText(Location.convert(getItem(position).getLatLng().latitude, Location.FORMAT_SECONDS));
             TextView txtMapNoteLongtitude = (TextView) view.findViewById(R.id.txtMapNoteLongtitude);
-            txtMapNoteLongtitude.setText(Double.toString(getItem(position).getLatLng().longitude));
+            txtMapNoteLongtitude.setText(Location.convert(getItem(position).getLatLng().longitude, Location.FORMAT_SECONDS));
 
             return view;
         }

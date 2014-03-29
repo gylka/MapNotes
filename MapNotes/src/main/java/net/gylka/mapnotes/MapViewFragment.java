@@ -48,8 +48,7 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     private NotesListManipulationListenerAdapter mNotesListManipulationListenerAdapter;
 
     public static MapViewFragment newInstance() {
-        MapViewFragment mapViewFragment = new MapViewFragment();
-        return mapViewFragment;
+        return new MapViewFragment();
     }
 
     public MapViewFragment() {
@@ -340,6 +339,10 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
     @Override
     public void onMapNoteEdited(MapNote mapNote) {
         selectMarker(mSelectedMarker);
+        if(mSelectedMarker.isInfoWindowShown()) {
+            mSelectedMarker.hideInfoWindow();
+            mSelectedMarker.showInfoWindow();
+        }
     }
 
     @Override

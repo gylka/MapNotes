@@ -39,7 +39,7 @@ public class MapNotesDaoImpl implements MapNotesDao {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         Cursor cur = db.rawQuery("SELECT * FROM " + NotesEntry.TABLE_NAME
                 + " WHERE " + NotesEntry._ID + " = ? ",
-                new String[]{new Long(id).toString()});
+                new String[]{Long.toString(id)});
         if (cur.getCount() == 0 ) {
             return null;
         }
@@ -80,7 +80,7 @@ public class MapNotesDaoImpl implements MapNotesDao {
         values.put(NotesEntry.C_LNG, mapNote.getLatLng().longitude);
         values.put(NotesEntry.C_TITLE, mapNote.getTitle());
         values.put(NotesEntry.C_NOTE, mapNote.getNote());
-        db.update(NotesEntry.TABLE_NAME, values, NotesEntry._ID + " = ?", new String[] {new Long(mapNote.getId()).toString()});
+        db.update(NotesEntry.TABLE_NAME, values, NotesEntry._ID + " = ?", new String[] {Long.toString(mapNote.getId())});
         return true;
     }
 
@@ -114,7 +114,7 @@ public class MapNotesDaoImpl implements MapNotesDao {
     private boolean isMapNoteAlreadyInTable(SQLiteDatabase db, long id) {
         Cursor cur = db.rawQuery("SELECT 1 FROM " + NotesEntry.TABLE_NAME +
                 " WHERE " + NotesEntry._ID + " = ?",
-                new String[]{new Long(id).toString()});
+                new String[]{Long.toString(id)});
         if (cur.getCount() > 0) {
             cur.close();
             return true;

@@ -25,6 +25,7 @@
             android:name="net.gylka.mapnotes.MarkerEditActivity"
             android:label="@string/title_activity_marker_edit" >
         </activity>
+
     </application>
 
     <uses-permission android:name="android.permission.INTERNET" />

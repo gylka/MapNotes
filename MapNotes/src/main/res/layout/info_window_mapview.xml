@@ -9,10 +9,10 @@
     android:focusable="false">
 
     <TextView
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Medium Text"
+        android:text=""
         android:id="@+id/txtInfoWindowTitle"
         android:maxLines="2"
         android:ellipsize="end"
@@ -22,7 +22,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Small Text"
+        android:text=""
         android:id="@+id/txtInfoWindowNote"
         android:ellipsize="end"
         android:maxLines="3"/>

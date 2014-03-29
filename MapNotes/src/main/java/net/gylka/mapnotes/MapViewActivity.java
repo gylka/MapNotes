@@ -25,10 +25,7 @@ import java.util.Locale;
 public class MapViewActivity extends BaseActivity implements ActionBar.TabListener, OnMarkerProcessIntentListener,
         NotesListManipulationListenerAdapter {
 
-    private Menu mMenu;
-
     private ActionBar mActionBar;
-    private MapNotesPagerAdapter mMapNotesPagerAdapter;
     private int mCurrentViewPagerItem;
     private List<OnMapNoteManipulationListener> mMapNoteManipulationListeners;
     private List<NotesListFragment.OnNotesListManipulationListener> mOnNotesListManipulationListeners;
@@ -51,9 +48,9 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
         mActionBar = getSupportActionBar();
         mActionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
         mActionBar.setHomeButtonEnabled(false);
-        mMapNotesPagerAdapter = new MapNotesPagerAdapter(getSupportFragmentManager());
+        MapNotesPagerAdapter mapNotesPagerAdapter = new MapNotesPagerAdapter(getSupportFragmentManager());
         final ViewPager viewPager = (ViewPager) findViewById(R.id.main_pager);
-        viewPager.setAdapter(mMapNotesPagerAdapter);
+        viewPager.setAdapter(mapNotesPagerAdapter);
 
         // Removing gestures (swiping included) on ViewPager
         viewPager.setOnTouchListener(new View.OnTouchListener() {
@@ -71,8 +68,8 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
             }
         });
 
-        for (int i=0; i < mMapNotesPagerAdapter.getCount() ; i++) {
-            mActionBar.addTab(mActionBar.newTab().setText(mMapNotesPagerAdapter.getPageTitle(i)).setTabListener(this));
+        for (int i=0; i < mapNotesPagerAdapter.getCount() ; i++) {
+            mActionBar.addTab(mActionBar.newTab().setText(mapNotesPagerAdapter.getPageTitle(i)).setTabListener(this));
         }
 
         if (savedInstanceState != null) {
@@ -86,7 +83,6 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.map_view, menu);
-        mMenu = menu;
         return true;
     }
 
@@ -170,7 +166,7 @@ public class MapViewActivity extends BaseActivity implements ActionBar.TabListen
             for(OnMapNoteManipulationListener onMapNoteManipulationListener : mMapNoteManipulationListeners) {
                 onMapNoteManipulationListener.onMapNoteDeleted(mapNote);
             }
-        };
+        }
     }
 
     @Override

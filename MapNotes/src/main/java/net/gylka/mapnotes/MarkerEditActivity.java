@@ -1,16 +1,14 @@
 package net.gylka.mapnotes;
 
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
+import android.location.Location;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -75,8 +73,8 @@ public class MarkerEditActivity extends BaseActivity {
                 }
             }
 
-            ((TextView)rootView.findViewById(R.id.lblLatitude)).setText(new Double(mCurrentMapNote.getLatLng().latitude).toString());
-            ((TextView)rootView.findViewById(R.id.lblLongtitude)).setText(new Double(mCurrentMapNote.getLatLng().longitude).toString());
+            ((TextView)rootView.findViewById(R.id.lblLatitude)).setText(Location.convert(mCurrentMapNote.getLatLng().latitude, Location.FORMAT_SECONDS));
+            ((TextView)rootView.findViewById(R.id.lblLongtitude)).setText(Location.convert(mCurrentMapNote.getLatLng().longitude, Location.FORMAT_SECONDS));
             final EditText edtMarkerTitle = (EditText)rootView.findViewById(R.id.edtMarkerTitle);
             edtMarkerTitle.setText(mCurrentMapNote.getTitle());
             final EditText edtMarkerNote = (EditText)rootView.findViewById(R.id.edtMarkerNote);
@@ -92,13 +90,41 @@ public class MarkerEditActivity extends BaseActivity {
                 }
             });
 
-            Button btnMarkerEditCreate = (Button)rootView.findViewById(R.id.btnMakerEditCreate);
+            final Button btnMarkerEditCreate = (Button)rootView.findViewById(R.id.btnMakerEditCreate);
             if (mRequestCode == REQUEST_ADD_MARKER) {
                 btnMarkerEditCreate.setText(R.string.label_create_map_note);
             }
             if (mRequestCode == REQUEST_EDIT_MARKER) {
                 btnMarkerEditCreate.setText(R.string.label_edit_map_note);
             }
+            // Checking if Marker's Title is empty. If empty - disable "Create/Edit" button, else - enable
+            // Additionaly listening Title's EditText changing
+            if (edtMarkerTitle.getText().length() > 0) {
+                btnMarkerEditCreate.setEnabled(true);
+            } else {
+                btnMarkerEditCreate.setEnabled(false);
+            }
+            edtMarkerTitle.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (s.length() > 0) {
+                        btnMarkerEditCreate.setEnabled(true);
+                    } else {
+                        btnMarkerEditCreate.setEnabled(false);
+                    }
+
+                }
+            });
+
             btnMarkerEditCreate.setOnClickListener(new View.OnClickListener() {
 
                 @Override

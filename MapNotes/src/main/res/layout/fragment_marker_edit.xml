@@ -13,12 +13,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/label_title"
-        android:id="@+id/lblMarkerTitle" />
+        android:id="@+id/lblMarkerTitle"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
 
     <EditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/edtMarkerTitle" />
+        android:id="@+id/edtMarkerTitle"
+        android:inputType="textCapSentences"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -37,7 +40,8 @@
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:baselineAligned="false">
 
         <LinearLayout
             android:orientation="vertical"
@@ -55,7 +59,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="Large Text"
+                android:text=""
                 android:id="@+id/lblLatitude" />
         </LinearLayout>
 
@@ -75,7 +79,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="Large Text"
+                android:text=""
                 android:id="@+id/lblLongtitude" />
         </LinearLayout>
     </LinearLayout>
