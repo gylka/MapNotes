@@ -23,6 +23,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,14 +146,14 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
                 @Override
                 public boolean onMarkerClick(Marker marker) {
                     // if changed selection - hide InfoWindow on previous marker;
-                    if ( ! marker.equals(mSelectedMarker) ) {
+                    if (!marker.equals(mSelectedMarker)) {
                         if (mMarkerWithInfoWindowShown != null) {
                             mMarkerWithInfoWindowShown.hideInfoWindow();
                             mMarkerWithInfoWindowShown = null;
                         }
                         selectMarker(marker);
                     } else {
-                        if( ! isMarkerNew(marker)) {
+                        if (!isMarkerNew(marker)) {
                             if (marker.equals(mMarkerWithInfoWindowShown)) {
                                 mMarkerWithInfoWindowShown.hideInfoWindow();
                                 mMarkerWithInfoWindowShown = null;
@@ -209,15 +210,15 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         mMenu = menu;
         if (mSelectedMarker != null) {
             if (isMarkerNew(mSelectedMarker)) {
-                mMenu.findItem(R.id.action_create_mapnote).setVisible(true).setEnabled(true);
-                mMenu.findItem(R.id.action_edit).setVisible(false).setEnabled(false);
-                mMenu.findItem(R.id.action_delete).setVisible(false).setEnabled(false);
-                mMenu.findItem(R.id.action_cancel).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_create_mapnote).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_edit).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_delete).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_cancel).setVisible(true).setEnabled(true);
             } else {
-                mMenu.findItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
-                mMenu.findItem(R.id.action_edit).setVisible(true).setEnabled(true);
-                mMenu.findItem(R.id.action_delete).setVisible(true).setEnabled(true);
-                mMenu.findItem(R.id.action_cancel).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_edit).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_delete).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_cancel).setVisible(false).setEnabled(false);
             }
         }
     }
@@ -284,17 +285,52 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
         }
         if (mMenu != null) {
             if (isMarkerNew(mSelectedMarker)) {
-                mMenu.findItem(R.id.action_create_mapnote).setVisible(true).setEnabled(true);
-                mMenu.findItem(R.id.action_edit).setVisible(false).setEnabled(false);
-                mMenu.findItem(R.id.action_delete).setVisible(false).setEnabled(false);
-                mMenu.findItem(R.id.action_cancel).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_create_mapnote).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_edit).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_delete).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_cancel).setVisible(true).setEnabled(true);
             } else {
-                mMenu.findItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
-                mMenu.findItem(R.id.action_edit).setVisible(true).setEnabled(true);
-                mMenu.findItem(R.id.action_delete).setVisible(true).setEnabled(true);
-                mMenu.findItem(R.id.action_cancel).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
+                getMenuItem(R.id.action_edit).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_delete).setVisible(true).setEnabled(true);
+                getMenuItem(R.id.action_cancel).setVisible(false).setEnabled(false);
             }
         }
+
+    }
+
+    private MenuItem getMenuItem (int menuItemResourceId) {
+        return getMenuItem(mMenu, menuItemResourceId);
+    }
+
+    /**
+     * getMenuItem method solves bug that was found on original Android 4.4.2 where sometimes Menu's
+     * findItem() method returned null, whereas on other Android versions it worked properly
+     *
+     * @param menu Menu
+     * @param menuItemResourceId resource ID if the MenuItem
+     * @return
+     */
+    private static MenuItem getMenuItem (Menu menu, int menuItemResourceId) {
+        MenuItem menuItem = menu.findItem(menuItemResourceId);
+        if (menuItem != null) {
+            return menuItem;
+        } else {
+            HashMap<MenuItem, Object> menuItemsMap = null;
+            try {
+                Field menuItemsField = menu.getClass().getSuperclass().getDeclaredField("mMenuItems");
+                menuItemsField.setAccessible(true);
+                menuItemsMap = (HashMap<MenuItem, Object>) menuItemsField.get(menu);
+                for (MenuItem item : menuItemsMap.keySet()) {
+                    if (item.getItemId() == menuItemResourceId) {
+                        return (MenuItem) menuItemsMap.get(item);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
 
     }
 
@@ -307,10 +343,10 @@ public class MapViewFragment extends SupportMapFragment implements OnMapNoteMani
             }
         }
         if (mMenu != null) {
-            mMenu.findItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
-            mMenu.findItem(R.id.action_edit).setVisible(false).setEnabled(false);
-            mMenu.findItem(R.id.action_delete).setVisible(false).setEnabled(false);
-            mMenu.findItem(R.id.action_cancel).setVisible(false).setEnabled(false);
+            getMenuItem(R.id.action_create_mapnote).setVisible(false).setEnabled(false);
+            getMenuItem(R.id.action_edit).setVisible(false).setEnabled(false);
+            getMenuItem(R.id.action_delete).setVisible(false).setEnabled(false);
+            getMenuItem(R.id.action_cancel).setVisible(false).setEnabled(false);
         }
         mSelectedMarker = null;
     }
